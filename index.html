@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ticketing Matrix UI</title>
+  <style>
+    :root{
+      --bg:#0f1220;/* deep navy */
+      --card:#14182b;
+      --card-2:#0c1022;
+      --muted:#8a93b2;
+      --text:#e9ecf8;
+      --accent:#7aa2ff;
+      --accent-2:#a07bff;
+      --border:rgba(255,255,255,.08);
+      --success:#2ecc71;
+      --warning:#ffb020;
+      --danger:#ff5d5d;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      background: radial-gradient(1200px 600px at 80% -10%, #182143 0%, #0f1220 50%, #0b0d19 100%);
+      color:var(--text);
+    }
+    header{
+      display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid var(--border);
+      background:linear-gradient(0deg, rgba(255,255,255,.02), rgba(255,255,255,.02)), var(--card);
+      position:sticky; top:0; z-index:10;
+    }
+    .logo{ width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,var(--accent),var(--accent-2)); display:grid; place-items:center; font-weight:700; }
+    .title{ font-weight:700; letter-spacing:.3px }
+    .sub{ color:var(--muted); font-size:14px }
+
+    .app{
+      display:grid; grid-template-columns: 320px 1fr 380px; gap:16px; padding:16px; max-width:1400px; margin:0 auto;
+    }
+    @media (max-width:1200px){ .app{grid-template-columns:1fr; } }
+
+    .panel{ background:linear-gradient(0deg, rgba(255,255,255,.02), rgba(255,255,255,.02)), var(--card); border:1px solid var(--border); border-radius:16px; box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+    .panel h3{ margin:0; padding:16px 16px 8px; font-size:16px }
+    .panel .content{ padding:0 16px 16px }
+    .divider{ height:1px; background:var(--border); margin:8px 0 }
+
+    /* IMAGE / REFERENCES */
+    .images input[type=file]{ display:block; width:100%; background:var(--card-2); border:1px dashed var(--border); padding:12px; border-radius:12px; color:var(--muted); }
+    .thumbs{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:12px }
+    .thumb{ position:relative; overflow:hidden; border-radius:10px; aspect-ratio:1/1; background:#0b0f20; border:1px solid var(--border) }
+    .thumb img{ width:100%; height:100%; object-fit:cover }
+    .thumb .note{ position:absolute; bottom:6px; left:6px; right:6px; font-size:11px; color:#dfe6ff; text-shadow:0 1px 2px #0008; background:linear-gradient(transparent, #0008); padding:6px; border-radius:8px }
+    .help{ font-size:12px; color:var(--muted); margin-top:8px }
+
+    /* CONFIG */
+    .cfg-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px }
+    .field{ display:flex; flex-direction:column; gap:6px }
+    .label{ font-size:12px; color:var(--muted) }
+    .input, select{ background:var(--card-2); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:10px 12px; }
+    .btn{ display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:12px; border:1px solid var(--border); background:linear-gradient(0deg, rgba(255,255,255,.03), rgba(255,255,255,.03)); color:var(--text); cursor:pointer; font-weight:600; }
+    .btn:hover{ transform:translateY(-1px); box-shadow:0 8px 14px rgba(0,0,0,.25) }
+
+    /* STAGE */
+    .stage{ padding:16px }
+    .stage-inner{ background:radial-gradient(800px 300px at 50% -40%, rgba(122,162,255,.2), transparent), linear-gradient(0deg, rgba(255,255,255,.02), rgba(255,255,255,.02)); border:1px solid var(--border); border-radius:16px; padding:16px; }
+    .screen{ text-align:center; font-size:12px; color:#cfe0ff; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:8px; }
+
+    .seatmap{
+      --rows: 12; --cols: 18; --gap: 6px; --size: 30px;
+      display:grid; grid-template-columns: repeat(var(--cols), var(--size)); gap: var(--gap);
+      justify-content:center; padding:16px; background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)); border-radius:12px; border:1px solid var(--border);
+    }
+
+    .seat{ width:var(--size); height:var(--size); border-radius:8px; border:1px solid var(--border); display:grid; place-items:center; font-size:11px; color:#eaf1ff; position:relative; outline:none; cursor:pointer; user-select:none; transition:transform .15s ease, box-shadow .15s ease, background .15s ease; }
+    .seat:hover{ transform: translateY(-2px); box-shadow:0 6px 10px rgba(0,0,0,.25) }
+    .seat[aria-disabled="true"]{ opacity:.25; pointer-events:none; text-decoration:line-through }
+
+    /* price tiers */
+    .tier-vip{ background:linear-gradient(180deg, rgba(160,123,255,.25), rgba(160,123,255,.12)); }
+    .tier-std{ background:linear-gradient(180deg, rgba(122,162,255,.25), rgba(122,162,255,.12)); }
+    .tier-econ{ background:linear-gradient(180deg, rgba(129, 199, 132,.25), rgba(129, 199, 132,.12)); }
+    .tier-acc{ background:linear-gradient(180deg, rgba(255,176,32,.25), rgba(255,176,32,.12)); }
+
+    .seat.selected{ outline:2px solid var(--accent); box-shadow:0 0 0 3px rgba(122,162,255,.2) inset, 0 0 0 1px rgba(122,162,255,.2); }
+
+    .aisle{ visibility:hidden }
+
+    .tooltip{ position:absolute; bottom: calc(100% + 8px); left:50%; transform:translateX(-50%); white-space:nowrap; background:#0b0f20; border:1px solid var(--border); padding:6px 8px; border-radius:8px; font-size:11px; color:#dfe6ff; opacity:0; pointer-events:none; transition:opacity .15s ease; }
+    .seat:focus .tooltip, .seat:hover .tooltip{ opacity:1 }
+
+    /* LEGEND + CART */
+    .legend{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px }
+    .legend .item{ display:flex; align-items:center; gap:8px; font-size:12px; color:#d7def8 }
+    .chip{ width:16px; height:16px; border-radius:6px; border:1px solid var(--border) }
+    .chip.vip{ background:linear-gradient(180deg, rgba(160,123,255,.5), rgba(160,123,255,.2)); }
+    .chip.std{ background:linear-gradient(180deg, rgba(122,162,255,.5), rgba(122,162,255,.2)); }
+    .chip.econ{ background:linear-gradient(180deg, rgba(129,199,132,.5), rgba(129,199,132,.2)); }
+    .chip.acc{ background:linear-gradient(180deg, rgba(255,176,32,.5), rgba(255,176,32,.2)); }
+
+    .cart-list{ display:flex; flex-direction:column; gap:8px; max-height:260px; overflow:auto; padding-right:4px }
+    .cart-row{ display:flex; justify-content:space-between; align-items:center; background:var(--card-2); border:1px solid var(--border); padding:8px 10px; border-radius:10px; font-size:13px }
+    .total{ display:flex; justify-content:space-between; align-items:center; padding-top:10px; border-top:1px dashed var(--border); margin-top:10px }
+
+    .muted{ color:var(--muted) }
+
+    .inline{ display:flex; gap:8px; flex-wrap:wrap }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">🎟️</div>
+    <div>
+      <div class="title">Ticketing Matrix</div>
+      <div class="sub">Responsive, accessible, and customizable seat map in vanilla JavaScript</div>
+    </div>
+  </header>
+
+  <main class="app">
+    <!-- LEFT: References + Config -->
+    <section class="panel images" aria-labelledby="images-title">
+      <h3 id="images-title">Reference Images</h3>
+      <div class="content">
+        <input id="file" class="input" type="file" multiple accept="image/*" />
+        <div class="help">Tip: Most browsers do <strong>not</strong> display HEIC. If your files are <code>.HEIC</code> (e.g. <code>IMG_9618.HEIC</code>, <code>IMG_9619.HEIC</code>), convert to PNG/JPG before uploading.</div>
+        <div class="thumbs" id="thumbs"></div>
+      </div>
+      <div class="divider"></div>
+      <h3>Layout Config</h3>
+      <div class="content">
+        <div class="cfg-grid">
+          <label class="field"><span class="label">Rows</span><input id="rows" class="input" type="number" min="1" max="30" value="12" /></label>
+          <label class="field"><span class="label">Columns</span><input id="cols" class="input" type="number" min="1" max="40" value="18" /></label>
+          <label class="field"><span class="label">Seat Size (px)</span><input id="size" class="input" type="number" min="20" max="44" value="30" /></label>
+          <label class="field"><span class="label">Gap (px)</span><input id="gap" class="input" type="number" min="2" max="16" value="6" /></label>
+          <label class="field"><span class="label">Aisles (comma cols)</span><input id="aisles" class="input" type="text" placeholder="e.g. 5, 12" value="6, 13" /></label>
+          <label class="field"><span class="label">Default Tier</span>
+            <select id="tier" class="input">
+              <option value="std">Standard</option>
+              <option value="vip">VIP</option>
+              <option value="econ">Economy</option>
+              <option value="acc">Accessible</option>
+            </select>
+          </label>
+        </div>
+        <div class="inline" style="margin-top:10px">
+          <button id="apply" class="btn">Apply Layout</button>
+          <button id="clear" class="btn" title="Clear selections">Clear</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CENTER: Stage + Seatmap -->
+    <section class="panel stage" aria-labelledby="stage-title">
+      <h3 id="stage-title" style="padding:0 0 8px 0; margin:0">Seat Map</h3>
+      <div class="stage-inner">
+        <div class="screen">STAGE / SCREEN</div>
+        <div id="seatmap" class="seatmap" role="grid" aria-label="Seat map"></div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Legend + Cart -->
+    <aside class="panel" aria-labelledby="legend-title">
+      <h3 id="legend-title">Legend & Pricing</h3>
+      <div class="content">
+        <div class="legend">
+          <div class="item"><span class="chip vip"></span> VIP — <span class="muted" id="p-vip"></span></div>
+          <div class="item"><span class="chip std"></span> Standard — <span class="muted" id="p-std"></span></div>
+          <div class="item"><span class="chip econ"></span> Economy — <span class="muted" id="p-econ"></span></div>
+          <div class="item"><span class="chip acc"></span> Accessible — <span class="muted" id="p-acc"></span></div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <h3>Selected Seats</h3>
+      <div class="content">
+        <div id="cart" class="cart-list" aria-live="polite"></div>
+        <div class="total">
+          <div class="muted">Total</div>
+          <div id="total" style="font-weight:700">$0.00</div>
+        </div>
+        <div style="margin-top:12px" class="inline">
+          <button class="btn" id="checkout">Checkout</button>
+          <button class="btn" id="hold">Hold 10m</button>
+        </div>
+        <div class="help">Buttons are illustrative. Wire these to your payment/hold APIs.</div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    // ------- Pricing (customize as needed) -------
+    const PRICES = { vip: 75, std: 45, econ: 25, acc: 25 };
+
+    // ------- State -------
+    let state = {
+      rows: 12,
+      cols: 18,
+      size: 30,
+      gap: 6,
+      aisles: new Set([6,13]), // 1-based column indices that become gaps
+      defaultTier: 'std',
+      seats: new Map(), // key "r-c" -> {row, col, tier, disabled, selected}
+    };
+
+    const seatmap = document.getElementById('seatmap');
+    const cartEl = document.getElementById('cart');
+    const totalEl = document.getElementById('total');
+
+    // Legend prices
+    const fmt = v => v.toLocaleString(undefined, {style:'currency', currency:'USD'});
+    document.getElementById('p-vip').textContent = fmt(PRICES.vip);
+    document.getElementById('p-std').textContent = fmt(PRICES.std);
+    document.getElementById('p-econ').textContent = fmt(PRICES.econ);
+    document.getElementById('p-acc').textContent = fmt(PRICES.acc);
+
+    // ------- Helpers -------
+    function key(r,c){ return `${r}-${c}` }
+
+    function buildSeats(){
+      seatmap.style.setProperty('--rows', state.rows);
+      seatmap.style.setProperty('--cols', state.cols);
+      seatmap.style.setProperty('--size', state.size + 'px');
+      seatmap.style.setProperty('--gap', state.gap + 'px');
+      seatmap.innerHTML = '';
+      state.seats.clear();
+
+      for(let r=1;r<=state.rows;r++){
+        for(let c=1;c<=state.cols;c++){
+          const isAisle = state.aisles.has(c);
+          if(isAisle){
+            const spacer = document.createElement('div');
+            spacer.className = 'aisle';
+            seatmap.appendChild(spacer);
+            continue;
+          }
+          const id = key(r,c);
+          const seat = {
+            row:r, col:c, tier: tierFor(r,c), disabled:false, selected:false
+          };
+          state.seats.set(id, seat);
+          seatmap.appendChild(renderSeat(seat));
+        }
+      }
+    }
+
+    // Simple example: front rows VIP, middle Standard, back Economy; every 6th column accessible
+    function tierFor(r,c){
+      if(r <= Math.ceil(state.rows*0.25)) return 'vip';
+      if(r >= Math.floor(state.rows*0.75)) return 'econ';
+      if((c % 6) === 0) return 'acc';
+      return state.defaultTier;
+    }
+
+    function renderSeat(seat){
+      const el = document.createElement('button');
+      el.className = `seat tier-${seat.tier}`;
+      el.setAttribute('role','gridcell');
+      el.setAttribute('aria-label', `Row ${seat.row}, Seat ${seat.col}, ${seat.tier.toUpperCase()} ${fmt(PRICES[seat.tier])}`);
+      el.setAttribute('aria-pressed', 'false');
+      el.dataset.row = seat.row; el.dataset.col = seat.col;
+      el.tabIndex = 0;
+      el.innerHTML = `<span>${seat.col}</span><span class="tooltip">R${seat.row} · C${seat.col} · ${seat.tier.toUpperCase()} ${fmt(PRICES[seat.tier])}</span>`;
+      if(seat.disabled){ el.setAttribute('aria-disabled','true'); }
+
+      el.addEventListener('click', ()=> toggleSeat(seat, el));
+      el.addEventListener('keydown', (e)=> handleKey(e, seat, el));
+      return el;
+    }
+
+    function toggleSeat(seat, el){
+      if(seat.disabled) return;
+      seat.selected = !seat.selected;
+      el.classList.toggle('selected', seat.selected);
+      el.setAttribute('aria-pressed', String(seat.selected));
+      updateCart();
+    }
+
+    function handleKey(e, seat, el){
+      const {row, col} = seat;
+      let nr=row, nc=col;
+      if(e.key==='ArrowRight'){ nc = Math.min(col+1, state.cols); moveFocus(row,col, nr, nc, 1); e.preventDefault(); }
+      if(e.key==='ArrowLeft'){ nc = Math.max(col-1, 1); moveFocus(row,col, nr, nc, -1); e.preventDefault(); }
+      if(e.key==='ArrowDown'){ nr = Math.min(row+1, state.rows); focusSeat(nr,col); e.preventDefault(); }
+      if(e.key==='ArrowUp'){ nr = Math.max(row-1, 1); focusSeat(nr,col); e.preventDefault(); }
+      if(e.key===' ' || e.key==='Enter'){ toggleSeat(seat, el); e.preventDefault(); }
+    }
+
+    function moveFocus(r,c, nr,nc, dir){
+      // skip aisles
+      while(state.aisles.has(nc)) nc += dir;
+      focusSeat(nr, nc);
+    }
+
+    function focusSeat(r,c){
+      const btn = [...seatmap.querySelectorAll('.seat')].find(b=> +b.dataset.row===r && +b.dataset.col===c);
+      if(btn) btn.focus();
+    }
+
+    function updateCart(){
+      const chosen = [...state.seats.values()].filter(s=>s.selected);
+      cartEl.innerHTML = '';
+      let total = 0;
+      for(const s of chosen){
+        const row = document.createElement('div');
+        row.className = 'cart-row';
+        const price = PRICES[s.tier] || 0; total += price;
+        row.innerHTML = `<div>R${s.row} · C${s.col} <span class="muted">(${s.tier.toUpperCase()})</span></div><div>${fmt(price)}</div>`;
+        cartEl.appendChild(row);
+      }
+      totalEl.textContent = fmt(total);
+      document.getElementById('checkout').disabled = chosen.length===0;
+      document.getElementById('hold').disabled = chosen.length===0;
+    }
+
+    // ------- Config bindings -------
+    document.getElementById('apply').addEventListener('click', ()=>{
+      state.rows = clamp(+document.getElementById('rows').value, 1, 30);
+      state.cols = clamp(+document.getElementById('cols').value, 1, 40);
+      state.size = clamp(+document.getElementById('size').value, 20, 44);
+      state.gap  = clamp(+document.getElementById('gap').value, 2, 16);
+      state.defaultTier = document.getElementById('tier').value;
+      const aislesRaw = document.getElementById('aisles').value;
+      state.aisles = new Set(aislesRaw.split(',').map(s=>+s.trim()).filter(n=>!Number.isNaN(n) && n>=1 && n<=state.cols));
+      buildSeats();
+      updateCart();
+    });
+
+    document.getElementById('clear').addEventListener('click', ()=>{
+      for(const s of state.seats.values()){ s.selected = false; }
+      seatmap.querySelectorAll('.seat').forEach(b=>{ b.classList.remove('selected'); b.setAttribute('aria-pressed','false'); });
+      updateCart();
+    });
+
+    function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
+    // ------- Image thumbnails (reference only) -------
+    const fileInput = document.getElementById('file');
+    const thumbs = document.getElementById('thumbs');
+    fileInput.addEventListener('change', (e)=>{
+      thumbs.innerHTML = '';
+      const files = Array.from(e.target.files || []);
+      for(const f of files){
+        const url = URL.createObjectURL(f);
+        const div = document.createElement('div');
+        div.className = 'thumb';
+        const img = document.createElement('img');
+        img.loading = 'lazy';
+        img.src = url;
+        const note = document.createElement('div');
+        note.className = 'note';
+        note.textContent = f.name;
+        div.appendChild(img); div.appendChild(note);
+        thumbs.appendChild(div);
+      }
+    });
+
+    // ------- Example API wiring (stub) -------
+    document.getElementById('checkout').addEventListener('click', ()=>{
+      const items = [...state.seats.values()].filter(s=>s.selected).map(s=>({ row:s.row, col:s.col, tier:s.tier, price:PRICES[s.tier] }));
+      // TODO: POST to your backend checkout endpoint
+      alert('Proceed to checkout with '+items.length+' seat(s).');
+    });
+    document.getElementById('hold').addEventListener('click', ()=>{
+      const items = [...state.seats.values()].filter(s=>s.selected).map(s=>({ row:s.row, col:s.col }));
+      // TODO: POST to your backend hold endpoint
+      alert('Holding '+items.length+' seat(s) for 10 minutes.');
+    });
+
+    // ------- Init -------
+    buildSeats();
+    updateCart();
+  </script>
+</body>
+</html>
