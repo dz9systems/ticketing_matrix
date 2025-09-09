@@ -1,3 +1,6 @@
+https://github.com/user-attachments/assets/f2756559-c00d-4747-93e1-7900de663587
+
+
 🎟️ Ticketing Matrix UI
 
 A responsive, accessible, and customizable seat map UI built with vanilla JavaScript, HTML, and CSS.
